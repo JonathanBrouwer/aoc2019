@@ -1,8 +1,8 @@
-pub fn main(input: &str) -> i64 {
+pub fn main(input: &str) -> usize {
     //Put all numbers in vector
-    let mut memory: Vec<i64> = Vec::new();
+    let mut memory: Vec<usize> = Vec::new();
     for st in input.split(',') {
-        let num: i64 = st.parse::<i64>().expect("Didn't get a number!");
+        let num: usize = st.parse::<usize>().expect("Didn't get a number!");
         memory.push(num);
     }
 
@@ -23,14 +23,14 @@ pub fn main(input: &str) -> i64 {
     panic!("No output found!");
 }
 
-pub fn run(mut memory: Vec<i64>) -> i64 {
+pub fn run(mut memory: Vec<usize>) -> usize {
     //Run program
     let mut current = 0;
     while memory[current] != 99 {
         //Get operator parameters
-        let param_a = memory[current + 1] as usize;
-        let param_b = memory[current + 2] as usize;
-        let output_index = memory[current + 3] as usize;
+        let param_a = memory[current + 1];
+        let param_b = memory[current + 2];
+        let output_index = memory[current + 3];
 
         match memory[current] {
             1 => {
