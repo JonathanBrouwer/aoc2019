@@ -9,10 +9,8 @@ pub fn is_valid(i: &i32) -> bool {
     let chars: Vec<char> = i.to_string().chars().collect();
 
     //Check ascending
-    for i in chars.windows(2) {
-        if i[0] > i[1] {
-            return false;
-        }
+    if !chars.windows(2).all(|w| w[0] <= w[1]) {
+        return false;
     }
 
     //Check if there's a group of 2
