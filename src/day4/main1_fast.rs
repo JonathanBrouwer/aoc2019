@@ -54,8 +54,8 @@ pub fn generate_next(chars: &mut Vec<char>) {
 
 #[cfg(test)]
 mod test {
-    use crate::day4::main1::main;
-    use crate::day4::main1::is_valid;
+    use crate::day4::main1_fast::main;
+    use crate::day4::main1_fast::is_valid;
 
     #[test]
     fn real() {

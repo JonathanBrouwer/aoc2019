@@ -1,4 +1,5 @@
 use core::cmp;
+use std::time::Instant;
 
 pub fn main() -> usize {
     let now = Instant::now();
@@ -52,8 +53,8 @@ pub fn generate_next(chars: &mut Vec<char>) {
 }
 #[cfg(test)]
 mod test {
-    use crate::day4::main2::main;
-    use crate::day4::main2::is_valid;
+    use crate::day4::main2_fast::main;
+    use crate::day4::main2_fast::is_valid;
 
     #[test]
     fn real() {
