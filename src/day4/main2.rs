@@ -1,34 +1,23 @@
-use std::collections::{HashSet, HashMap};
+pub fn main() -> usize {
+    let low = 138307;
+    let high = 654504;
 
-pub fn main() -> i64 {
-    let mut count = 0;
-    for i in 138307..654504 {
-        if(is_valid(i)) {
-            count+=1;
-        }
-    }
-    println! {"{}", count};
-    return 0;
+    return (low..high).filter(is_valid).count() as usize;
 }
 
-pub fn is_valid(i: i32) -> bool {
-    let mut istr2 = i.to_string();
-    let mut istr = istr2.chars();
-    let mut curchar = istr.next().expect("No next char");
-    let mut charcount: HashMap<char, i32> = HashMap::new();
-    charcount.insert(curchar, 1);
-    for i in 0..5 {
-        let newchar = istr.next().expect("No next char");
-        if newchar >= curchar {
-            charcount.insert(newchar, *charcount.get(&newchar).get_or_insert(&0) + 1);
-            curchar = newchar;
-        } else {
+pub fn is_valid(i: &i32) -> bool {
+    let chars: Vec<char> = i.to_string().chars().collect();
+
+    //Check ascending
+    for i in chars.windows(2) {
+        if i[0] > i[1] {
             return false;
         }
     }
 
-    for (k, v) in charcount {
-        if v == 2 {
+    //Check if there's a group of 2
+    for i in &chars {
+        if chars.iter().filter(|&n| n == i).count() == 2 {
             return true;
         }
     }
@@ -48,16 +37,16 @@ mod test {
 
     #[test]
     fn test1() {
-        assert!(is_valid(112233));
+        assert!(is_valid(&112233));
     }
 
     #[test]
     fn test2() {
-        assert!(!is_valid(123444));
+        assert!(!is_valid(&123444));
     }
 
     #[test]
     fn test3() {
-        assert!(is_valid(111122));
+        assert!(is_valid(&111122));
     }
 }
