@@ -1,2 +1,4 @@
-pub mod main1;
-pub mod main2;
+pub mod main1_fast;
+pub mod main1_short;
+pub mod main2_fast;
+pub mod main2_short;

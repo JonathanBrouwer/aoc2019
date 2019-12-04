@@ -24,8 +24,8 @@ pub fn is_valid(i: &i32) -> bool {
 
 #[cfg(test)]
 mod test {
-    use crate::day4::main2::main;
-    use crate::day4::main2::is_valid;
+    use crate::day4::main2_short::main;
+    use crate::day4::main2_short::is_valid;
 
     #[test]
     fn real() {
