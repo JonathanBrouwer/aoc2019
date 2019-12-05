@@ -1,89 +1,145 @@
-pub fn main(input: &str) {
+pub fn main(program: &str, inputs: Vec<i32>) -> Vec<i32> {
     //Put all numbers in vector
     let mut memory: Vec<i32> = Vec::new();
-    for st in input.split(',') {
+    for st in program.split(',') {
         let num: i32 = st.parse::<i32>().expect("Didn't get a number!");
         memory.push(num);
     }
 
-    run(memory);
+    //Run program
+    return run(&mut memory, inputs);
 }
 
-pub fn run(mut memory: Vec<i32>) {
-    //Run program
-    let mut current: i32 = 0;
-    loop {
-        //Get operator parameters
-        let instr = memory[current as usize] as i32;
+pub fn run(memory: &mut Vec<i32>, inputs: Vec<i32>) -> Vec<i32> {
+    //Keep track of program state
+    let mut program_counter: usize = 0;
+    let mut input_current: usize = 0;
 
+    //Outputs so far
+    let mut outputs = vec!();
+
+    //Program infinite loop
+    loop {
+        //Get the current instruction
+        assert!(memory[program_counter] >= 0);
+        let instr = memory[program_counter] as usize;
+
+        //Match current instruction
         match get_instr(instr) {
+            //Add
+            //[2] = [0] + [1]
             1 => {
-                let param_a = read_param(&memory, instr, current, 0);
-                let param_b = read_param(&memory, instr, current, 1);
-                let output_index = memory[current as usize + 3];
-                memory[output_index as usize] = param_a + param_b;
-                current += 4;
+                //Arguments
+                let param_a = input_param(&memory, instr, program_counter, 0);
+                let param_b = input_param(&memory, instr, program_counter, 1);
+                let output_index = output_param(&memory, instr, program_counter, 2);
+
+                //Execute
+                memory[output_index] = param_a + param_b;
+                program_counter += 4;
             }
+            //Mul
+            //[2] = [0] + [1]
             2 => {
-                let param_a = read_param(&memory, instr, current, 0);
-                let param_b = read_param(&memory, instr, current, 1);
-                let output_index = memory[current as usize + 3];
-                memory[output_index as usize] = param_a * param_b;
-                current += 4;
+                //Arguments
+                let param_a = input_param(&memory, instr, program_counter, 0);
+                let param_b = input_param(&memory, instr, program_counter, 1);
+                let output_index = output_param(&memory, instr, program_counter, 2);
+
+                //Execute
+                memory[output_index] = param_a * param_b;
+                program_counter += 4;
             }
+            //Get input
+            //[0] = [input]
             3 => {
-                let input = 5;
-                let output_index = memory[current as usize + 1];
-                memory[output_index as usize] = input;
-                current += 2;
+                //Arguments
+                let output_index = output_param(&memory, instr, program_counter, 0);
+
+                //Get next input
+                let input = inputs[input_current];
+                input_current += 1;
+
+                //Execute
+                memory[output_index] = input;
+                program_counter += 2;
             }
+            //Output
+            //[output] = [0]
             4 => {
-                let param_a = read_param(&memory, instr, current, 0);
-                println!("Output: {}", param_a);
-                current += 2;
+                //Arguments
+                let param_a = input_param(&memory, instr, program_counter, 0);
+
+                //Execute
+                outputs.push(param_a);
+                program_counter += 2;
             }
+            //Jump if true
+            //If [0] != 0, jump to [1]
             5 => {
-                let param_a = read_param(&memory, instr, current, 0);
-                let param_b = read_param(&memory, instr, current, 1);
+                //Arguments
+                let param_a = input_param(&memory, instr, program_counter, 0);
+                let param_b = input_param(&memory, instr, program_counter, 1);
+
+                //Execute
                 if param_a != 0 {
-                    current = param_b;
+                    assert!(param_b >= 0);
+                    program_counter = param_b as usize;
                 }else{
-                    current += 3;
+                    program_counter += 3;
                 }
             }
+            //Jump if zero
+            //If [0] == 0, jump to [1]
             6 => {
-                let param_a = read_param(&memory, instr, current, 0);
-                let param_b = read_param(&memory, instr, current, 1);
+                //Arguments
+                let param_a = input_param(&memory, instr, program_counter, 0);
+                let param_b = input_param(&memory, instr, program_counter, 1);
+
+                //Execute
                 if param_a == 0 {
-                    current = param_b;
+                    assert!(param_b >= 0);
+                    program_counter = param_b as usize;
                 }else{
-                    current += 3;
+                    program_counter += 3;
                 }
             }
+            //Less than
+            //[2] = 1 if [0] < [1], otherwise 0
             7 => {
-                let param_a = read_param(&memory, instr, current, 0);
-                let param_b = read_param(&memory, instr, current, 1);
-                let output_index = memory[current as usize + 3];
+                //Arguments
+                let param_a = input_param(&memory, instr, program_counter, 0);
+                let param_b = input_param(&memory, instr, program_counter, 1);
+                let output_index = output_param(&memory, instr, program_counter, 2);
+
+                //Execute
                 if param_a < param_b {
-                    memory[output_index as usize] = 1;
+                    memory[output_index] = 1;
                 }else{
-                    memory[output_index as usize] = 0;
+                    memory[output_index] = 0;
                 }
-                current += 4;
+                program_counter += 4;
             }
+            //Equals
+            //[2] = 1 if [0] == [1], otherwise 0
             8 => {
-                let param_a = read_param(&memory, instr, current, 0);
-                let param_b = read_param(&memory, instr, current, 1);
-                let output_index = memory[current as usize + 3];
+                //Arguments
+                let param_a = input_param(&memory, instr, program_counter, 0);
+                let param_b = input_param(&memory, instr, program_counter, 1);
+                let output_index = output_param(&memory, instr, program_counter, 2);
+
+                //Execute
                 if param_a == param_b {
-                    memory[output_index as usize] = 1;
+                    memory[output_index] = 1;
                 }else{
-                    memory[output_index as usize] = 0;
+                    memory[output_index] = 0;
                 }
-                current += 4;
+                program_counter += 4;
             }
+            //Halt
             99 => {
-                return;
+                //Execute
+                return outputs;
             }
             _ => {
                 panic!("Invalid op-code.");
@@ -92,12 +148,12 @@ pub fn run(mut memory: Vec<i32>) {
     }
 }
 
-pub fn get_instr(instr: i32) -> i32 {
+pub fn get_instr(instr: usize) -> usize {
     let digits = number_to_vec(instr);
     return 10*digits[digits.len() - 2] + digits[digits.len() - 1];
 }
 
-pub fn read_param(memory: &Vec<i32>, instr: i32, instrindex: i32, paramnum: i32) -> i32 {
+pub fn input_param(memory: &Vec<i32>, instr: usize, instrindex: usize, paramnum: usize) -> i32 {
     let digits = number_to_vec(instr);
     let input_type = digits[2-paramnum as usize];
 
@@ -114,7 +170,26 @@ pub fn read_param(memory: &Vec<i32>, instr: i32, instrindex: i32, paramnum: i32)
     }
 }
 
-fn number_to_vec(n: i32) -> Vec<i32> {
+pub fn output_param(memory: &Vec<i32>, instr: usize, instrindex: usize, paramnum: usize) -> usize {
+    let digits = number_to_vec(instr);
+    let input_type = digits[2-paramnum as usize];
+
+    match input_type {
+        0 => {
+            let loc = memory[instrindex as usize + paramnum as usize + 1];
+            assert!(loc >= 0);
+            return loc as usize;
+        }
+        1 => {
+            panic!("Found immediate output location.")
+        }
+        _ => {
+            panic!("Invalid position mode.")
+        }
+    }
+}
+
+fn number_to_vec(n: usize) -> Vec<usize> {
     let mut digits = Vec::new();
     let mut n = n;
 
@@ -132,36 +207,4 @@ fn number_to_vec(n: i32) -> Vec<i32> {
 
     digits.reverse();
     digits
-}
-
-#[cfg(test)]
-mod test {
-    use crate::day5::main::main;
-
-    #[test]
-    fn test_main_real() {
-        let input = include_str!("input.txt");
-        main(input);
-    }
-
-    #[test]
-    fn jump_zero_pos() {
-        let input = "3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9";
-        println!("Expect non-zero");
-        main(input);
-    }
-
-    #[test]
-    fn jump_zero_imm() {
-        let input = "3,3,1105,-1,9,1101,0,0,12,4,12,99,1";
-        println!("Expect non-zero");
-        main(input);
-    }
-
-    #[test]
-    fn big_test() {
-        let input = "3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99";
-        println!("Expect 999");
-        main(input);
-    }
 }
