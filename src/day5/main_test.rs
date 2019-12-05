@@ -36,6 +36,7 @@ mod test {
     fn real_part1() {
         let input = include_str!("input.txt");
         let outputs = main(input, vec!(1));
+        println!("Output part 1: {:?}", outputs);
         assert_eq!(outputs, vec!(0, 0, 0, 0, 0, 0, 0, 0, 0, 13210611));
     }
 
@@ -155,6 +156,7 @@ mod test {
     fn real_part2() {
         let input = include_str!("input.txt");
         let outputs = main(input, vec!(5));
+        println!("Output part 2: {:?}", outputs);
         assert_eq!(outputs, vec!(584126));
     }
 }
