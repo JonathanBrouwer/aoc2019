@@ -172,6 +172,6 @@ mod test {
     fn test_day7_part1_real() {
         let input = include_str!("input.txt");
         let output = try_settings(input);
-        assert_eq!(output, 1001);
+        assert_eq!(output, 24405);
     }
 }
