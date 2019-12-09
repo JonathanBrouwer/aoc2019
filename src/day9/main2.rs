@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use crate::day9::main2::ParamMode::{READ,WRITE};
 
 pub fn parse_run(program: &str, inputs: Vec<i64>) -> (Vec<i64>, bool) {
     let mut memory = parse(program);
@@ -39,9 +40,9 @@ pub fn run(pr: &mut ProgramState, inputs: Vec<i64>) -> (Vec<i64>, bool) {
             //[2] = [0] + [1]
             1 => {
                 //Arguments
-                let param_a = input_param(pr, instr, pr.pc, 0);
-                let param_b = input_param(pr, instr, pr.pc, 1);
-                let output_index = output_param(pr, instr, pr.pc, 2);
+                let param_a = param(pr, 0, READ);
+                let param_b = param(pr, 1, READ);
+                let output_index = param(pr, 2, WRITE) as usize;
 
                 //Execute
                 pr.memory[output_index] = param_a + param_b;
@@ -51,9 +52,9 @@ pub fn run(pr: &mut ProgramState, inputs: Vec<i64>) -> (Vec<i64>, bool) {
             //[2] = [0] + [1]
             2 => {
                 //Arguments
-                let param_a = input_param(pr, instr, pr.pc, 0);
-                let param_b = input_param(pr, instr, pr.pc, 1);
-                let output_index = output_param(pr, instr, pr.pc, 2);
+                let param_a = param(pr, 0, READ);
+                let param_b = param(pr, 1, READ);
+                let output_index = param(pr, 2, WRITE) as usize;
 
                 //Execute
                 pr.memory[output_index] = param_a * param_b;
@@ -63,7 +64,7 @@ pub fn run(pr: &mut ProgramState, inputs: Vec<i64>) -> (Vec<i64>, bool) {
             //[0] = [input]
             3 => {
                 //Arguments
-                let output_index = output_param(pr, instr, pr.pc, 0);
+                let output_index = param(pr, 0, WRITE) as usize;
 
                 //Get next input
                 if input_current == inputs.len() {
@@ -79,7 +80,7 @@ pub fn run(pr: &mut ProgramState, inputs: Vec<i64>) -> (Vec<i64>, bool) {
             //[output] = [0]
             4 => {
                 //Arguments
-                let param_a = input_param(pr, instr, pr.pc, 0);
+                let param_a = param(pr, 0, READ);
 
                 //Execute
                 outputs.push(param_a);
@@ -89,8 +90,8 @@ pub fn run(pr: &mut ProgramState, inputs: Vec<i64>) -> (Vec<i64>, bool) {
             //If [0] != 0, jump to [1]
             5 => {
                 //Arguments
-                let param_a = input_param(pr, instr, pr.pc, 0);
-                let param_b = input_param(pr, instr, pr.pc, 1);
+                let param_a = param(pr, 0, READ);
+                let param_b = param(pr, 1, READ);
 
                 //Execute
                 if param_a != 0 {
@@ -104,8 +105,8 @@ pub fn run(pr: &mut ProgramState, inputs: Vec<i64>) -> (Vec<i64>, bool) {
             //If [0] == 0, jump to [1]
             6 => {
                 //Arguments
-                let param_a = input_param(pr, instr, pr.pc, 0);
-                let param_b = input_param(pr, instr, pr.pc, 1);
+                let param_a = param(pr, 0, READ);
+                let param_b = param(pr, 1, READ);
 
                 //Execute
                 if param_a == 0 {
@@ -119,9 +120,9 @@ pub fn run(pr: &mut ProgramState, inputs: Vec<i64>) -> (Vec<i64>, bool) {
             //[2] = 1 if [0] < [1], otherwise 0
             7 => {
                 //Arguments
-                let param_a = input_param(pr, instr, pr.pc, 0);
-                let param_b = input_param(pr, instr, pr.pc, 1);
-                let output_index = output_param(pr, instr, pr.pc, 2);
+                let param_a = param(pr, 0, READ);
+                let param_b = param(pr, 1, READ);
+                let output_index = param(pr, 2, WRITE) as usize;
 
                 //Execute
                 if param_a < param_b {
@@ -135,9 +136,9 @@ pub fn run(pr: &mut ProgramState, inputs: Vec<i64>) -> (Vec<i64>, bool) {
             //[2] = 1 if [0] == [1], otherwise 0
             8 => {
                 //Arguments
-                let param_a = input_param(pr, instr, pr.pc, 0);
-                let param_b = input_param(pr, instr, pr.pc, 1);
-                let output_index = output_param(pr, instr, pr.pc, 2);
+                let param_a = param(pr, 0, READ);
+                let param_b = param(pr, 1, READ);
+                let output_index = param(pr, 2, WRITE) as usize;
 
                 //Execute
                 if param_a == param_b {
@@ -150,7 +151,7 @@ pub fn run(pr: &mut ProgramState, inputs: Vec<i64>) -> (Vec<i64>, bool) {
             //Change relative offset
             9 => {
                 //Arguments
-                let change = input_param(pr, instr, pr.pc, 0);
+                let change = param(pr, 0, READ);
 
                 //Execute
                 pr.relativebase += change;
@@ -173,63 +174,45 @@ pub fn get_instr(instr: usize) -> usize {
     return 10*digits[digits.len() - 2] + digits[digits.len() - 1];
 }
 
-pub fn input_param(pr: &mut ProgramState, instr: usize, instrindex: usize,
-                   paramnum: usize)
-                   -> i64 {
-    let digits = number_to_vec(instr);
+pub enum ParamMode {
+    READ, WRITE
+}
+
+pub fn param(pr: &mut ProgramState, paramnum: usize, mode: ParamMode) -> i64 {
+    //Read instruction
+    let instr = pr.memory[pr.pc];
+    assert!(instr >= 0);
+    let digits = number_to_vec(instr as usize);
     let input_type = digits[2-paramnum];
 
+    //Obtain parameter location
+    let param_loc = pr.pc + paramnum + 1;
+    ensure_size(pr, param_loc);
+    let final_param_loc: usize;
     match input_type {
-        0 => {
-            let index = pr.memory[instrindex + paramnum + 1] as usize;
-            ensure_size(pr, index);
-            return pr.memory[index];
+        0 => { //POSITION
+            final_param_loc = pr.memory[param_loc] as usize;
         }
-        1 => {
-            let index = instrindex + paramnum + 1;
-            ensure_size(pr, index);
-            return pr.memory[index];
+        1 => { //IMMEDIATE
+            final_param_loc = param_loc;
         }
-        2 => {
-            let index = (instrindex as i64 + paramnum as i64 + 1) as usize;
-            ensure_size(pr, index);
-            let param = (pr.memory[index] + pr.relativebase) as usize;
-            ensure_size(pr, param);
-            return pr.memory[param];
+        2 => { //RELATIVE
+            final_param_loc = (pr.memory[param_loc] + pr.relativebase as i64) as usize;
         }
         _ => {
             panic!("Invalid position mode.")
         }
     }
-}
 
-pub fn output_param(pr: &mut ProgramState, instr: usize, instrindex: usize, paramnum: usize) ->
-                                                                                           usize {
-    let digits = number_to_vec(instr);
-    let input_type = digits[2-paramnum as usize];
-
-    match input_type {
-        0 => {
-            let index = instrindex as usize + paramnum as usize + 1;
-            ensure_size(pr, index);
-            let loc = pr.memory[index];
-            assert!(loc >= 0);
-            ensure_size(pr, loc as usize);
-            return loc as usize;
+    //Return correct value based on read/write
+    return match mode {
+        READ => {
+            ensure_size(pr, final_param_loc);
+            pr.memory[final_param_loc]
         }
-        1 => {
-            panic!("Found immediate output location.")
-        }
-        2 => {
-            let index = (instrindex as i64 + paramnum as i64 + 1) as usize;
-            ensure_size(pr, index);
-            let loc = pr.memory[index] + pr.relativebase;
-            assert!(loc >= 0);
-            ensure_size(pr, loc as usize);
-            return loc as usize;
-        }
-        _ => {
-            panic!("Invalid position mode.")
+        WRITE => {
+            ensure_size(pr, final_param_loc);
+            final_param_loc as i64
         }
     }
 }
