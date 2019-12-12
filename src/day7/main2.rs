@@ -121,7 +121,6 @@ pub fn run(memory: &mut Vec<i32>, program_counter: &mut usize, inputs: Vec<i32>)
                 if input_current == inputs.len() {
                     return (outputs, false);
                 }
-                println!("Input");
 
                 //Execute
                 memory[output_index] = inputs[input_current];
@@ -135,7 +134,6 @@ pub fn run(memory: &mut Vec<i32>, program_counter: &mut usize, inputs: Vec<i32>)
                 let param_a = input_param(&memory, instr, *program_counter, 0);
 
                 //Execute
-                println!("Output");
                 outputs.push(param_a);
                 *program_counter += 2;
             }
