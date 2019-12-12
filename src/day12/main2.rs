@@ -71,8 +71,7 @@ pub fn main(input: &str) -> i64 {
 
     let mut total: i64 = 1;
     for count in counts {
-        let gcd = count.gcd(&total);
-        total *= (count / gcd);
+        total = total.lcm(&count);
     }
 
     return total;
