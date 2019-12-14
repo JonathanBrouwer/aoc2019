@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
+use crate::day14::main1::findOreNeeded;
 
 pub fn getFuelFromOre(input: &str, ore_have: i64) -> i64 {
     let mut min: i64 = 0;
@@ -19,104 +20,6 @@ pub fn getFuelFromOre(input: &str, ore_have: i64) -> i64 {
     }
 
     return min;
-}
-
-pub fn findOreNeeded(input: &str, fuel_count: i64) -> i64 {
-    //Parse recipes
-    let mut recipes: Vec<Recipe> = Vec::new();
-    for line in input.lines() {
-        let parts: Vec<&str> = line.split(" => ").collect();
-
-        //Input
-        let mut inputs = Vec::new();
-        for input in parts[0].split(", ") {
-            let parts: Vec<&str> = input.split(" ").collect();
-            let count: i64 = parts[0].parse().unwrap();
-            inputs.push(Thing{ name: parts[1], count });
-        }
-
-        //Output
-        let parts: Vec<&str> = parts[1].split(" ").collect();
-        let count: i64 = parts[0].parse().unwrap();
-        let output = Thing { name: parts[1], count };
-
-        recipes.push(Recipe {inputs, output});
-    }
-
-    //Recipe maps has recipe for each output, except ore
-    let mut recipes_map: HashMap<&str, &Recipe> = HashMap::new();
-    for recipe in &recipes {
-        recipes_map.insert(recipe.output.name, &recipe);
-    }
-
-    //Depend counts tracks how many recipes will still produce (need) something as input
-    let mut depend_counts: HashMap<&str, i64> = HashMap::new();
-    depend_counts.insert("ORE", 0);
-    for recipe in &recipes {
-        depend_counts.insert(recipe.output.name, 0);
-    }
-    for recipe in &recipes {
-        for input in &recipe.inputs {
-            depend_counts.insert(input.name, depend_counts.get(input.name).unwrap() + 1);
-        }
-    }
-
-    //Current counts tracks how much we have of something
-    let mut current_counts: HashMap<&str, i64> = HashMap::new();
-    current_counts.insert("FUEL", fuel_count);
-
-    //Loop and find roots of the DAG
-    while !depend_counts.is_empty() {
-        //Does anything still require ore?
-        if *depend_counts.get("ORE").unwrap() == 0 {
-            return *current_counts.get("ORE").unwrap();
-        }
-
-        //Get all recipes which are done
-        let done_recipes: Vec<&&Recipe> = depend_counts.iter()
-            .filter(|(_k, v)| **v == 0)
-            .map(|(k, _v)| recipes_map.get(k).unwrap())
-            .collect();
-
-        //Handle each done recipe
-        for done in done_recipes {
-            //Remove from depend counts, so it's only handled once
-            depend_counts.remove(done.output.name);
-
-            //Calculate how many times to use recipe
-            let to_create = current_counts.get(done.output.name).unwrap_or(&0);
-            let recipe_times = if to_create % done.output.count == 0 {
-                to_create / done.output.count
-            } else {
-                to_create / done.output.count + 1
-            };
-
-            //Handle inputs
-            for input in &done.inputs {
-                //Update current counts
-                let mut current = *current_counts.get(input.name).unwrap_or(&0);
-                current += recipe_times * input.count;
-                current_counts.insert(input.name, current);
-
-                //Decrement depend counts
-                depend_counts.insert(input.name, depend_counts.get(input.name).unwrap() - 1);
-            }
-        }
-    }
-
-    return 0;
-}
-
-#[derive(Clone)]
-pub struct Recipe<'a> {
-    inputs: Vec<Thing<'a>>,
-    output: Thing<'a>,
-}
-
-#[derive(Clone)]
-pub struct Thing<'a> {
-    name: &'a str,
-    count: i64
 }
 
 #[cfg(test)]
