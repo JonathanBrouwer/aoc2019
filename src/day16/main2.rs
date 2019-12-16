@@ -1,11 +1,9 @@
 pub fn main(strin: &str) -> u64 {
-    //Create first input, times 4
-    let mut input: Vec<u8> = Vec::new();
-    for i in 0..10000 {
-        for ch in strin.chars() {
-            input.push(ch.to_digit(10).unwrap() as u8);
-        }
-    }
+    //Get the input, times 10000
+    let mut input: Vec<u8> = strin.chars()
+        .map(|c| c.to_digit(10).unwrap() as u8)
+        .cycle()
+        .take(strin.len() * 10000).collect();
 
     //Calculate the message offset
     let mut offset: u64 = 0;
@@ -17,10 +15,10 @@ pub fn main(strin: &str) -> u64 {
     //Do some nice summing
     //We will assume that offset is after the middle
     //After the middle, it's a triangular matrix of 1s.
+    let top = input.len() - 1;
+    let mid = input.len() / 2;
     for _ in 0..100 {
         //From middle to end, in reverse, calculate sums
-        let top = input.len() - 1;
-        let mid = input.len() / 2;
         for i in (mid..top).rev() {
             input[i] = (input[i] + input[i + 1]) % 10;
         }
