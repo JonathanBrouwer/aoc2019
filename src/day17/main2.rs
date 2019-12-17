@@ -28,9 +28,34 @@ impl Len for Step {
     }
 }
 
+impl ToString for Step {
+    fn to_string(&self) -> String {
+        match self {
+            L => String::from("L"),
+            R => String::from("R"),
+            F(n) => n.to_string()
+        }.parse().unwrap()
+    }
+}
+
+const MAXLENGTH: usize = 21;
+pub fn main_str(main: &Vec<usize>) -> Vec<char> {
+    let strings = main.iter().map(|c| ((*c as u8 + 'A' as u8) as char).to_string()).collect::<Vec<String>>();
+    let result = strings.join(",") + "\n";
+    return result.chars().collect();
+}
+
+pub fn routine_str(routine: &Vec<Step>) -> Vec<char> {
+    let mut strings = routine.iter().map(|step| step.to_string()).collect::<Vec<String>>();
+    let result = strings.join(",") + "\n";
+    return result.chars().collect();
+}
+
 pub fn main(program: &str) -> i64 {
     //Get input as string
-    let mut state = ProgramState { memory: parse(program), pc: 0, relativebase: 0 };
+    let mut memory = parse(program);
+    memory[0] = 2;
+    let mut state = ProgramState { memory, pc: 0, relativebase: 0 };
     let output = run(&mut state, vec!());
 
     //Get input as char array
@@ -39,10 +64,43 @@ pub fn main(program: &str) -> i64 {
     for ch in &parsed {
         print!("{}", ch);
     }
-    return run_map(&parsed);
+
+    //Get answers
+    let (routines, main) = find_map(&parsed);
+    let main_str: Vec<char> = main_str(&main);
+    let routines_str: Vec<Vec<char>> = routines.iter().map(|r| routine_str(r)).collect();
+    assert!(main_str.len() <= 21);
+    assert!(routines_str[0].len() <= 21);
+    assert!(routines_str[1].len() <= 21);
+    assert!(routines_str[2].len() <= 21);
+
+    //Feed into robot
+    let (o1, h1) = run(&mut state, main_str.iter().map(|c| *c as u8 as i64).collect::<Vec<i64>>());
+    assert_eq!(h1, false);
+    for i in o1 {
+        print!("{}", i as u8 as char);
+    }
+    println!();
+
+    for i in 0..3 {
+        let (o2, h2) = run(&mut state, routines_str[i].iter().map(|c| *c as u8 as i64).collect::<Vec<i64>>());
+        assert_eq!(h2, false);
+        for i in o2 {
+            print!("{}", i as u8 as char);
+        }
+        println!();
+    }
+    let (o5, h5) = run(&mut state, vec!('n' as u8 as i64, '\n' as u8 as i64));
+    assert_eq!(h5, true);
+    for i in &o5 {
+        print!("{}", *i as u8 as char);
+    }
+    println!();
+
+    return o5[0];
 }
 
-pub fn run_map(parsed: &Vec<char>) -> i64 {
+pub fn find_map(parsed: &Vec<char>) -> (Vec<Vec<Step>>, Vec<usize>) {
     let actions = find_path(parsed);
 
     let mut main_program = Vec::new();
@@ -50,31 +108,33 @@ pub fn run_map(parsed: &Vec<char>) -> i64 {
     let found = find_subroutines(actions.as_slice(), &mut main_program, &mut routines, 0);
     assert!(found);
 
-    return 0;
-}
+    println!("M: {:?}", main_program);
+    println!("0: {:?}", routines[0]);
+    println!("1: {:?}", routines[1]);
+    println!("2: {:?}", routines[2]);
 
-pub fn yeet(list: &mut Vec<i64>) {
-    list.push(0);
-    if list.len() < 100 {yeet(list)};
-    list.remove(list.len() - 1);
+    return (routines, main_program);
 }
 
 pub fn find_subroutines<'a>(path: &[Step], main_program: &mut Vec<usize>, routines: &mut Vec<Vec<Step>>, cr: usize) -> bool {
     //Is this valid?
-    if cr >= 3 {
+    if cr > 3 {
         return false;
     }
 
+    //Are the routines short enough?
     // + 1 at the end is to account for the extra comma counted at the end
-    if routines[cr].iter().map(|s| (s.len() + 1)).sum::<usize>() > 20 + 1 {
+    if main_str(main_program).len() > MAXLENGTH {
         return false;
     }
-    if main_program.iter().map(|s| (s.to_string().len() + 1)).sum::<usize>() > 20 + 1 {
-        return false;
+    for routine in routines.iter() {
+        if routine_str(routine).len() > MAXLENGTH {
+            return false;
+        }
     }
 
     //Are we finished?
-    if path.len() == 0 {
+    if cr == 3 && path.len() == 0 {
         return true;
     }
 
@@ -85,15 +145,23 @@ pub fn find_subroutines<'a>(path: &[Step], main_program: &mut Vec<usize>, routin
     //- Use a previous option from already_found
 
     //Can we use a previous option?
-    if routines[cr].len() == 0 {
-        'options: for option in routines.clone() {
+    if cr == 3 || routines[cr].len() == 0 {
+        'options: for (option_index, option) in routines.clone().iter().enumerate() {
+            //
+            if option.len() == 0 {
+                continue;
+            }
             //Enumerate through option
             let mut path_index = 0;
-            for (i, thing) in option.iter().enumerate() {
+            for thing in option.iter() {
                 //Match on type
                 match *thing {
                     L | R => {
-                        //Not a forward, must be equal
+                        //Is path index still valid?
+                        if path_index >= path.len() {
+                            continue 'options;
+                        }
+                        //Not a forward, the items must be equal
                         if path[path_index] != *thing {
                             continue 'options;
                         }
@@ -102,7 +170,12 @@ pub fn find_subroutines<'a>(path: &[Step], main_program: &mut Vec<usize>, routin
                     F(num) => {
                         //We expect num F(1)s
                         for _ in 0..num {
-                            if path[path_index] == F(1) {
+                            //Is path index still valid?
+                            if path_index >= path.len() {
+                                continue 'options;
+                            }
+                            //Match next F(1)
+                            if path[path_index] != F(1) {
                                 continue 'options;
                             }
                             path_index += 1;
@@ -112,39 +185,59 @@ pub fn find_subroutines<'a>(path: &[Step], main_program: &mut Vec<usize>, routin
             }
 
             //It matched!
-            let (first, rest) = path.split_at(path_index);
+            let (_first, rest) = path.split_at(path_index);
+            main_program.push(option_index);
             if find_subroutines(rest, main_program, routines, cr) { return true }
+            main_program.remove(main_program.len() - 1);
         }
     }
 
-    //The rest is char-by-char, split off the first char
-    let (first, rest) = path.split_first().unwrap();
-
     //Can we end the current routine here?
-    if routines.len() < 3 {
-        main_program.push(routines.len());
-        if find_subroutines(rest, main_program, routines, cr + 1) { return true }
-        routines.remove(routines.len() - 1);
+    if cr < 3 {
+        main_program.push(cr);
+        if find_subroutines(path, main_program, routines, cr + 1) { return true }
+        main_program.remove(main_program.len() - 1);
     }
 
     //Can we add it to the current?
     //Just try, the valid check will catch us if it's too long
-    {
-        let lastpos = routines[cr].len() - 1;
-        match *routines[cr].last().unwrap() {
+    if cr < 3 {
+        //General things for later
+        let (first, rest) = path.split_first().unwrap();
+
+        match *first {
             L | R => {
-                routines[cr].push(F(1));
+                //Add the L or R to the routine
+                routines[cr].push(*first);
                 if find_subroutines(rest, main_program, routines, cr) { return true }
-                routines[cr].remove(lastpos - 1);
+                let lastpos = routines[cr].len() - 1;
+                routines[cr].remove(lastpos);
             }
-            F(old_num) => {
-                routines[cr][lastpos - 1] = F(old_num + 1);
-                if find_subroutines(rest, main_program, routines, cr) { return true }
-                routines[cr][lastpos - 1] = F(old_num);
+            F(num) => {
+                assert_eq!(num, 1);
+                //Check if we can merge this with the last of current routine
+                if !routines[cr].is_empty() {
+                    let old_lastpos = routines[cr].len() - 1;
+                    match *routines[cr].last().unwrap() {
+                        L | R => {
+                            routines[cr].push(F(num));
+                            if find_subroutines(rest, main_program, routines, cr) { return true }
+                            routines[cr].remove(old_lastpos + 1);
+                        }
+                        F(old_num) => {
+                            routines[cr][old_lastpos] = F(old_num + num);
+                            if find_subroutines(rest, main_program, routines, cr) { return true }
+                            routines[cr][old_lastpos] = F(old_num);
+                        }
+                    }
+                }else{
+                    routines[cr].push(F(num));
+                    if find_subroutines(rest, main_program, routines, cr) { return true }
+                    routines[cr].remove(0);
+                }
             }
         }
     }
-
     //Nothing worked
     return false;
 }
