@@ -169,7 +169,7 @@ mod test {
 
     #[test]
     fn test_day17_part2_2() {
-        let input = 
+        let input =
 "#######...#####
 #.....#...#...#
 #.....#...#...#
@@ -194,6 +194,6 @@ mod test {
         let input = include_str!("input.txt");
         let output = main(input);
         println!("Answer: {}", output);
-        assert_eq!(output, 3192);
+        assert_eq!(output, 684691);
     }
 }

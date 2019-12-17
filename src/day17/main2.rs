@@ -51,19 +51,30 @@ pub fn routine_str(routine: &Vec<Step>) -> Vec<char> {
     return result.chars().collect();
 }
 
+static mut counter: i64 = 0;
+pub fn print(chars: &Vec<i64>) {
+    unsafe {
+        print!("[{}] ", counter);
+        counter += 1;
+    }
+
+    for ch in chars {
+        print!("{}", *ch as u8 as char);
+    }
+    println!();
+}
+
 pub fn main(program: &str) -> i64 {
     //Get input as string
     let mut memory = parse(program);
     memory[0] = 2;
     let mut state = ProgramState { memory, pc: 0, relativebase: 0 };
     let output = run(&mut state, vec!());
+    print(&output.0);
 
     //Get input as char array
     let parsed: Vec<char> = output.0.iter()
         .map( |i| *i as u8 as char).collect();
-    for ch in &parsed {
-        print!("{}", ch);
-    }
 
     //Get answers
     let (routines, main) = find_map(&parsed);
@@ -77,27 +88,18 @@ pub fn main(program: &str) -> i64 {
     //Feed into robot
     let (o1, h1) = run(&mut state, main_str.iter().map(|c| *c as u8 as i64).collect::<Vec<i64>>());
     assert_eq!(h1, false);
-    for i in o1 {
-        print!("{}", i as u8 as char);
-    }
-    println!();
+    print(&o1);
 
     for i in 0..3 {
         let (o2, h2) = run(&mut state, routines_str[i].iter().map(|c| *c as u8 as i64).collect::<Vec<i64>>());
         assert_eq!(h2, false);
-        for i in o2 {
-            print!("{}", i as u8 as char);
-        }
-        println!();
+        print(&o2);
     }
     let (o5, h5) = run(&mut state, vec!('n' as u8 as i64, '\n' as u8 as i64));
     assert_eq!(h5, true);
-    for i in &o5 {
-        print!("{}", *i as u8 as char);
-    }
-    println!();
+    print(&o5);
 
-    return o5[0];
+    return o5[o5.len() - 1];
 }
 
 pub fn find_map(parsed: &Vec<char>) -> (Vec<Vec<Step>>, Vec<usize>) {
