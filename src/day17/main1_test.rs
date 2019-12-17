@@ -155,7 +155,7 @@ mod test {
     // === Day 9 Part 1 ===
 
     #[test]
-    fn test_day15_part1_1() {
+    fn test_day17_part1_1() {
         let input = "..#..........
 ..#..........
 #######...###
@@ -168,7 +168,7 @@ mod test {
     }
 
     #[test]
-    fn test_day15_part1_real() {
+    fn test_day17_part1_real() {
         let input = include_str!("input.txt");
         let output = alignment_sum(input);
         println!("Answer: {}", output);
