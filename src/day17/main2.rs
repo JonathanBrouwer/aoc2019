@@ -2,10 +2,30 @@ use crate::day17::main2::ParamMode::{READ,WRITE};
 use crate::day17::main2::Rotation::{N,E,S,W};
 use std::slice::Iter;
 use std::collections::HashSet;
+use crate::day17::main2::Step::{R, L, F};
 
 #[derive(PartialEq, Eq, Hash, Copy, Clone, Debug)]
 pub enum Rotation {
     N, E, S, W
+}
+
+#[derive(PartialEq, Eq, Hash, Copy, Clone, Debug)]
+pub enum Step {
+    L, R,
+    F(u64)
+}
+
+pub trait Len {
+    fn len(&self) -> usize;
+}
+
+impl Len for Step {
+    fn len(&self) -> usize {
+        match self {
+            L | R => 1,
+            F(n) => n.to_string().len()
+        }
+    }
 }
 
 pub fn main(program: &str) -> i64 {
@@ -26,8 +46,9 @@ pub fn run_map(parsed: &Vec<char>) -> i64 {
     let actions = find_path(parsed);
 
     let mut main_program = Vec::new();
-    let mut routines: Vec<Vec<&str>> = vec!(Vec::new(),Vec::new(),Vec::new());
-    find_subroutines(actions.as_slice(), &mut main_program, &mut routines, 0);
+    let mut routines: Vec<Vec<Step>> = vec!(Vec::new(),Vec::new(),Vec::new());
+    let found = find_subroutines(actions.as_slice(), &mut main_program, &mut routines, 0);
+    assert!(found);
 
     return 0;
 }
@@ -38,15 +59,17 @@ pub fn yeet(list: &mut Vec<i64>) {
     list.remove(list.len() - 1);
 }
 
-pub fn find_subroutines<'a>(path: &[&'a str], main_program: &mut Vec<usize>, routines: &mut Vec<Vec<&'a str>>, cr: usize) -> bool {
+pub fn find_subroutines<'a>(path: &[Step], main_program: &mut Vec<usize>, routines: &mut Vec<Vec<Step>>, cr: usize) -> bool {
     //Is this valid?
-    if cr > 3 {
+    if cr >= 3 {
         return false;
     }
-    if routines[cr].iter().map(|s| (s.len() + 1)).sum::<usize>() - 1 <= 20 {
+
+    // + 1 at the end is to account for the extra comma counted at the end
+    if routines[cr].iter().map(|s| (s.len() + 1)).sum::<usize>() > 20 + 1 {
         return false;
     }
-    if main_program.iter().map(|s| (s.to_string().len() + 1)).sum::<usize>() - 1 <= 20 {
+    if main_program.iter().map(|s| (s.to_string().len() + 1)).sum::<usize>() > 20 + 1 {
         return false;
     }
 
@@ -54,8 +77,6 @@ pub fn find_subroutines<'a>(path: &[&'a str], main_program: &mut Vec<usize>, rou
     if path.len() == 0 {
         return true;
     }
-
-    let croutine = &mut routines[cr];
 
     //Not finished :(
     //Options:
@@ -69,23 +90,24 @@ pub fn find_subroutines<'a>(path: &[&'a str], main_program: &mut Vec<usize>, rou
             //Enumerate through option
             let mut path_index = 0;
             for (i, thing) in option.iter().enumerate() {
-                //Is thing numeric?
-                let num_opt = thing.parse::<i64>();
-                if num_opt.is_ok() {
-                    //Expect num 1s
-                    let num = num_opt.unwrap();
-                    for _ in 0..num {
-                        if path[path_index] != "1" {
+                //Match on type
+                match *thing {
+                    L | R => {
+                        //Not a forward, must be equal
+                        if path[path_index] != *thing {
                             continue 'options;
                         }
                         path_index += 1;
                     }
-                }else{
-                    //Not a number, must be equal
-                    if path[path_index] != *thing {
-                        continue 'options;
+                    F(num) => {
+                        //We expect num F(1)s
+                        for _ in 0..num {
+                            if path[path_index] == F(1) {
+                                continue 'options;
+                            }
+                            path_index += 1;
+                        }
                     }
-                    path_index += 1;
                 }
             }
 
@@ -98,7 +120,7 @@ pub fn find_subroutines<'a>(path: &[&'a str], main_program: &mut Vec<usize>, rou
     //The rest is char-by-char, split off the first char
     let (first, rest) = path.split_first().unwrap();
 
-    //Can we end it here?
+    //Can we end the current routine here?
     if routines.len() < 3 {
         main_program.push(routines.len());
         if find_subroutines(rest, main_program, routines, cr + 1) { return true }
@@ -108,17 +130,18 @@ pub fn find_subroutines<'a>(path: &[&'a str], main_program: &mut Vec<usize>, rou
     //Can we add it to the current?
     //Just try, the valid check will catch us if it's too long
     {
-        let num_opt = routines[cr].last().unwrap().parse::<i64>();
-        if num_opt.is_ok() {
-            let old_num = num_opt.unwrap();
-            let lastpos = routines[cr].len() - 1;
-            routines[cr][lastpos - 1] = (old_num+1).to_string().as_ref();
-            if find_subroutines(rest, main_program, routines, cr) { return true }
-            //TODO routines[cr][lastpos - 1] = old_num.to_string().as_ref();
-        }else{
-            routines[cr].push("1");
-            if find_subroutines(rest, main_program, routines, cr) { return true }
-            routines[cr].remove(routines[cr].len() - 1);
+        let lastpos = routines[cr].len() - 1;
+        match *routines[cr].last().unwrap() {
+            L | R => {
+                routines[cr].push(F(1));
+                if find_subroutines(rest, main_program, routines, cr) { return true }
+                routines[cr].remove(lastpos - 1);
+            }
+            F(old_num) => {
+                routines[cr][lastpos - 1] = F(old_num + 1);
+                if find_subroutines(rest, main_program, routines, cr) { return true }
+                routines[cr][lastpos - 1] = F(old_num);
+            }
         }
     }
 
@@ -126,7 +149,7 @@ pub fn find_subroutines<'a>(path: &[&'a str], main_program: &mut Vec<usize>, rou
     return false;
 }
 
-pub fn find_path(parsed: &Vec<char>) -> Vec<&str> {
+pub fn find_path(parsed: &Vec<char>) -> Vec<Step> {
     //Get input as 2d array
     let mut map: HashSet<(i64, i64)> = HashSet::new();
     let mut current = (0, 0);
@@ -147,7 +170,7 @@ pub fn find_path(parsed: &Vec<char>) -> Vec<&str> {
     }
 
     //For all points that have 4 neighbours
-    let mut actions: Vec<&str> = Vec::new();
+    let mut actions: Vec<Step> = Vec::new();
     while map.len() > 1 {
         //Find amount of points around current point
         let neighbours = neighbours(&map, &current);
@@ -185,9 +208,9 @@ pub fn find_path(parsed: &Vec<char>) -> Vec<&str> {
             (N, N) | (E, E) | (S, S) | (W, W)
             => {}
             (N, E) | (E, S) | (S, W) | (W, N)
-            => actions.push("R"),
+            => actions.push(R),
             (N, W) | (W, S) | (S, E) | (E, N)
-            => actions.push("L"),
+            => actions.push(L),
             (N, S) | (E, W) | (S, N) | (W, E)
             => panic!()
         }
@@ -196,7 +219,7 @@ pub fn find_path(parsed: &Vec<char>) -> Vec<&str> {
         if neighbours.len() <= 2 {map.remove(&current);}
 
         //Move forward
-        actions.push("1");
+        actions.push(F(1));
         current = target.0.clone();
         current_rot = target.1;
     }
