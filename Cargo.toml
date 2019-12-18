@@ -11,5 +11,5 @@ num = "0.2"
 
 [profile.test]
 #opt-level = 1
-#opt-level = 3
-#lto = true
+opt-level = 3
+lto = true
