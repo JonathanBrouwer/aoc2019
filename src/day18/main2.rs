@@ -212,9 +212,9 @@ mod test {
 
     #[test]
     fn test_main_real() {
-        let input = include_str!("input2.txt");
-        let result = main(input);
-        println!("Result: {}", result);
-        assert_eq!(result, 1828);
+//        let input = include_str!("input2.txt");
+//        let result = main(input);
+//        println!("Result: {}", result);
+//        assert_eq!(result, 1828);
     }
 }
