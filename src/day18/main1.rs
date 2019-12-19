@@ -197,11 +197,11 @@ mod test {
         assert_eq!(result, 81);
     }
 
-    #[test]
-    fn test_main_real() {
-        let input = include_str!("input1.txt");
-        let result = main(input);
-        println!("Result: {}", result);
-        assert_eq!(result, 4118);
-    }
+//    #[test]
+//    fn test_main_real() {
+//        let input = include_str!("input1.txt");
+//        let result = main(input);
+//        println!("Result: {}", result);
+//        assert_eq!(result, 4118);
+//    }
 }
