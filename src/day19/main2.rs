@@ -22,10 +22,6 @@ pub fn count(program: &str) -> u64 {
         let tempx = (bottomleft.0 + 99, bottomleft.1 - 99);
         if get(&program, &tempx) == 0 { continue }
 
-        //Is the difference 100 from top to bottom?
-        let tempy = (bottomleft.0, bottomleft.1 - 99);
-        if get(&program, &tempy) == 0 { continue }
-
         return bottomleft.0 * 10000 + (bottomleft.1 - 99);
     }
 }
