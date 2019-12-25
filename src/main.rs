@@ -20,7 +20,14 @@ mod day20;
 mod day21;
 mod day22;
 mod day23;
+mod day24;
+mod day25;
+
+#[macro_use]
+extern crate text_io;
 
 fn main() {
-    println!("Hello, world!");
+    //day 25 interactive
+    let input = include_str!("day25/input.txt");
+    day25::main1::main(input);
 }
